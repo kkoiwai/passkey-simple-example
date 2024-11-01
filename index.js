@@ -113,8 +113,16 @@ app.post('/registerResponse', async (req, res) => {
 
 app.get('/signinRequest', async (req, res) => {
 
+    var allowCredentials = [];
+    if (req.query.username && req.query.username.trim().length > 0) {
+        const username = req.query.username.trim();
+        const creds = credentials.filter((cred) => cred.user_id === username);
+        allowCredentials = creds.map(cred => ({ id: cred.id }))
+    }
+
     const options = await generateAuthenticationOptions({
         rpID: RPID,
+        allowCredentials,
         timeout: 60000,
     });
 

@@ -11,13 +11,13 @@
     <h1>パスキーを使ってみる</h1>
 
     <div>
-        <input type="text" id="username" placeholder="Username">
+        <input type="text" id="username" placeholder="Username" autocomplete="username webauthn">
         <button id="registerButton">パスキーの作成</button>
         <button id="reauthButton">再認証</button>
     </div>
     <br><br>
     <div>
-        <button id="oneClick">ワンクリックログイン</button>
+        <button id="oneClickButton">ワンクリックログイン</button>
     </div>
 
     <script>
@@ -103,6 +103,84 @@
             alert("ログイン成功");
 
         });
+
+
+        document.getElementById('oneClickButton').addEventListener('click', async (event) => {
+
+            // サーバからリクエストオブジェクトを取得
+            const request = await fetch("/signinRequest");
+            if (!request.ok) {
+                // エラー処理
+            }
+            // リクエストオブジェクトをJSONから変換(必要に応じてPolyfillを利用)
+            const publicKeyCredentialRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(await request.json());
+            // パスキーによる認証のためのWebAuthn APIの実行
+            const credential = await navigator.credentials.get({
+                publicKey: publicKeyCredentialRequestOptions
+            });
+            // レスポンスオブジェクトのJSONへの変換(必要に応じてPolyfillを利用)
+            const credentialJSON = credential.toJSON();
+            // サーバへの返却
+            const fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentialJSON)
+            };
+            const response = await fetch("/signinResponse", fetchOptions);
+            if (!response.ok) {
+                // エラー処理
+                alert("ログイン失敗");
+                return;
+            }
+            // 認証後の処理を続ける
+            alert("ログイン成功");
+
+        });
+
+        window.onload = async function () {
+            if (window.PublicKeyCredential &&
+                PublicKeyCredential.isConditionalMediationAvailable) {
+                // フォームオートフィルログイン対応ブラウザであるかを確認
+                const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();
+                if (isCMA) {
+                    // フォームオートフィルログインのパスキーの認証を発動する
+
+                    // サーバからリクエストオブジェクトを取得
+                    const request = await fetch("/signinRequest");
+                    if (!request.ok) {
+                        // エラー処理
+                    }
+                    // リクエストオブジェクトをJSONから変換(必要に応じてPolyfillを利用)
+                    const publicKeyCredentialRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(await request.json());
+                    // パスキーによる認証のためのWebAuthn APIの実行
+                    const credential = await navigator.credentials.get({
+                        publicKey: publicKeyCredentialRequestOptions,
+                        mediation: "conditional" // (d2)
+                    });
+                    // レスポンスオブジェクトのJSONへの変換(必要に応じてPolyfillを利用)
+                    const credentialJSON = credential.toJSON();
+                    // サーバへの返却
+                    const fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(credentialJSON)
+                    };
+                    const response = await fetch("/signinResponse", fetchOptions);
+                    if (!response.ok) {
+                        // エラー処理
+                        alert("ログイン失敗");
+                        return;
+                    }
+                    // 認証後の処理を続ける
+                    alert("ログイン成功");
+
+                }
+            }
+        }
 
     </script>
 
