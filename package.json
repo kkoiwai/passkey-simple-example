@@ -1,0 +1,20 @@
+{
+  "name": "passkey-book-sample-nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "Kosuke Koiwai",
+  "license": "ISC",
+  "dependencies": {
+    "@simplewebauthn/server": "^11.0.0",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "express-useragent": "^1.0.15",
+    "lowdb": "^7.0.1"
+  }
+}

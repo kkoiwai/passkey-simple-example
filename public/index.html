@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>パスキーを使ってみる</title>
+</head>
+<script src="polyfill.js"></script>
+
+<body>
+    <h1>パスキーを使ってみる</h1>
+
+    <div>
+        <input type="text" id="username" placeholder="Username">
+        <button id="registerButton">パスキーの作成</button>
+        <button id="reauthButton">再認証</button>
+    </div>
+    <br><br>
+    <div>
+        <button id="oneClick">ワンクリックログイン</button>
+    </div>
+
+    <script>
+        document.getElementById('registerButton').addEventListener('click', async (event) => {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert("Please enter a username");
+                return;
+            }
+
+            // サーバからリクエストオブジェクトを取得
+            const request = await fetch("/registerRequest?username=" + username)
+            if (!request.ok) {
+                // エラー処理
+                alert("作成失敗");
+                return;
+            }
+            console.log(request)
+            // console.log(await request.json())
+            // リクエストオブジェクトをJSONから変換(必要に応じてPolyifillを利用)
+            const publicKeyCredentialCreationOptions = PublicKeyCredential.parseCreationOptionsFromJSON(await request.json());
+            // パスキー作成のためのWebAuthn APIの実行
+            const credential = await navigator.credentials.create({
+                publicKey: publicKeyCredentialCreationOptions
+            });
+            // レスポンスオブジェクトのJSONへの変換(必要に応じてPolyifillを利用)
+            const credentialJSON = credential.toJSON();
+            // サーバへの返却
+            const fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentialJSON)
+            };
+
+            const response = await fetch("/registerResponse", fetchOptions);
+            if (!response.ok) {
+                // エラー処理
+                alert("作成失敗");
+                return;
+            }
+            // 登録後の処理を続ける
+            alert("作成成功");
+
+        });
+
+
+        document.getElementById('reauthButton').addEventListener('click', async (event) => {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert("Please enter a username");
+                return;
+            }
+            // サーバからリクエストオブジェクトを取得
+            const request = await fetch("/signinRequest?username=" + username);
+            if (!request.ok) {
+                // エラー処理
+            }
+            // リクエストオブジェクトをJSONから変換(必要に応じてPolyfillを利用)
+            const publicKeyCredentialRequestOptions = PublicKeyCredential.parseRequestOptionsFromJSON(await request.json());
+            // パスキーによる認証のためのWebAuthn APIの実行
+            const credential = await navigator.credentials.get({
+                publicKey: publicKeyCredentialRequestOptions
+            });
+            // レスポンスオブジェクトのJSONへの変換(必要に応じてPolyfillを利用)
+            const credentialJSON = credential.toJSON();
+            // サーバへの返却
+            const fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentialJSON)
+            };
+            const response = await fetch("/signinResponse", fetchOptions);
+            if (!response.ok) {
+                // エラー処理
+                alert("ログイン失敗");
+                return;
+            }
+            // 認証後の処理を続ける
+            alert("ログイン成功");
+
+        });
+
+    </script>
+
+
+</body>
+
+</html>
