@@ -1,0 +1,10 @@
+runtime: nodejs22
+env: standard
+instance_class: F1
+automatic_scaling:
+  min_idle_instances: 0
+  max_idle_instances: 1
+  min_pending_latency: 0ms
+  max_pending_latency: 5s
+env_variables:
+  PORT: 8080
