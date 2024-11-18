@@ -28,6 +28,11 @@
                 return;
             }
 
+            // Conditional UIが実行中の場合は止める
+            if (abortController) {
+                abortController.abort("ReAuth");
+            }
+
             // サーバからリクエストオブジェクトを取得
             const request = await fetch("/registerRequest?username=" + username)
             if (!request.ok) {
@@ -72,6 +77,12 @@
                 alert("Please enter a username");
                 return;
             }
+
+            // Conditional UIが実行中の場合は止める
+            if (abortController) {
+                abortController.abort("ReAuth");
+            }
+
             // サーバからリクエストオブジェクトを取得
             const request = await fetch("/signinRequest?username=" + username);
             if (!request.ok) {
@@ -107,6 +118,12 @@
 
         document.getElementById('oneClickButton').addEventListener('click', async (event) => {
 
+
+            // Conditional UIが実行中の場合は止める
+            if (abortController) {
+                abortController.abort("ReAuth");
+            }
+
             // サーバからリクエストオブジェクトを取得
             const request = await fetch("/signinRequest");
             if (!request.ok) {
@@ -139,6 +156,9 @@
 
         });
 
+        let abortController;
+        let abortSignal;
+
         window.onload = async function () {
             if (window.PublicKeyCredential &&
                 PublicKeyCredential.isConditionalMediationAvailable) {
@@ -146,6 +166,9 @@
                 const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();
                 if (isCMA) {
                     // フォームオートフィルログインのパスキーの認証を発動する
+
+                    abortController = new AbortController();
+                    abortSignal = abortController.signal;
 
                     // サーバからリクエストオブジェクトを取得
                     const request = await fetch("/signinRequest");
@@ -157,7 +180,8 @@
                     // パスキーによる認証のためのWebAuthn APIの実行
                     const credential = await navigator.credentials.get({
                         publicKey: publicKeyCredentialRequestOptions,
-                        mediation: "conditional" // (d2)
+                        mediation: "conditional", // (d2)
+                        signal: abortSignal,
                     });
                     // レスポンスオブジェクトのJSONへの変換(必要に応じてPolyfillを利用)
                     const credentialJSON = credential.toJSON();

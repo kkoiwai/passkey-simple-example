@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>サーバを立てずにパスキーを使ってみる</title>
+</head>
+
+<body>
+    <h1>サーバを立てずにパスキーを使ってみる</h1>
+
+    <div>
+        <input type="text" id="username" placeholder="Username" autocomplete="username webauthn">
+        <button id="registerButton">パスキーの作成</button>
+        <button id="reauthButton">再認証</button>
+    </div>
+    <br><br>
+    <div>
+        <button id="oneClickButton">ワンクリックログイン</button>
+    </div>
+
+    <script>
+        document.getElementById('registerButton').addEventListener('click', async (event) => {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert("Please enter a username");
+                return;
+            }
+
+            // Conditional UIが実行中の場合は止める
+            if (abortController) {
+                abortController.abort("Register");
+            }
+
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+
+            const publicKeyCredentialCreationOptions = {
+                challenge: challenge, // (d1)
+                rp: {
+                    name: "Example Website",
+                    id: "localhost", // (d2)
+                },
+                user: { // (d3)
+                    id: new Uint8Array([65, 66, 67, 49, 50, 51]).buffer,
+                    name: "gihyo.shiro",
+                    displayName: "技評 四郎"
+                },
+                pubKeyCredParams: [
+                    { alg: -7, type: "public-key" },
+                    { alg: -257, type: "public-key" }
+                ],
+                // excludeCredentials: [{ // (d4)
+                //     id: "＊＊＊＊＊▲全角＊を、半角*に変更（5文字）▲",
+                //     type: "public-key"
+                // }],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform", // (d5)
+                    requireResidentKey: true, // (d6)
+                    userVerification: "required" // (d7)
+                },
+                hints: ["client-device"] // (d8)
+            };
+
+            const credential =
+                await navigator.credentials.create({
+                    publicKey: publicKeyCredentialCreationOptions
+                });
+
+            console.log(credential);
+
+        });
+
+
+        document.getElementById('reauthButton').addEventListener('click', async (event) => {
+
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert("Please enter a username");
+                return;
+            }
+            // Conditional UIが実行中の場合は止める
+            if (abortController) {
+                abortController.abort("ReAuth");
+            }
+            // サーバから
+
+        });
+
+
+        document.getElementById('oneClickButton').addEventListener('click', async (event) => {
+            // Conditional UIが実行中の場合は止める
+            if (abortController) {
+                abortController.abort("One Click Login");
+            }
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+
+            const publicKeyCredentialRequestOptions = {
+                challenge: challenge, // (d1)
+                rpId: "localhost", // (d2)
+                userVerification: "required" // (d3)
+            };
+
+            const credential = await navigator.credentials.get({
+                publicKey: publicKeyCredentialRequestOptions
+            });
+
+            console.log(credential);
+
+        });
+
+        let abortController;
+        let abortSignal;
+
+        window.onload = async function () {
+            if (window.PublicKeyCredential &&
+                PublicKeyCredential.getClientCapabilities) {
+                let capabilities = await PublicKeyCredential.getClientCapabilities(); // (d1)
+                console.log(capabilities);
+            }
+
+
+            if (window.PublicKeyCredential &&
+                PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable &&
+                PublicKeyCredential.isConditionalMediationAvailable) {
+                // デバイスがパスキーをサポートしているか、フォームオートフィルログイン対応ブラウザであるかを確認
+                Promise.all([
+                    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(),
+                    PublicKeyCredential.isConditionalMediationAvailable(),
+                ]).then(results => {
+                    if (results.every(r => r === true)) {
+                        // ユーザーにパスキーを登録してもらう処理（パスキー登録ボタンを表示）
+                        console.log("フォームオートフィルログイン対応");
+                    }
+                });
+            }
+
+            if (window.PublicKeyCredential &&
+                PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+                // デバイスがパスキーをサポートしているかを確認
+                const isUVPAA = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                if (isUVPAA) {
+                    // パスキーの認証を可能にする
+                    console.log("パスキーの認証が可能");
+                } else {
+                    // パスキー以外の認証方法を提示する
+                }
+            } else {
+                // パスキー以外の認証方法を提示する
+            }
+
+
+
+
+            if (window.PublicKeyCredential &&
+                PublicKeyCredential.isConditionalMediationAvailable) {
+                // フォームオートフィルログイン対応ブラウザであるかを確認
+                const isCMA = await PublicKeyCredential.isConditionalMediationAvailable();
+                if (isCMA) {
+                    // フォームオートフィルログインのパスキーの認証を発動する
+
+                    abortController = new AbortController();
+                    abortSignal = abortController.signal;
+
+                    const challenge = new Uint8Array(32);
+                    crypto.getRandomValues(challenge);
+
+                    const publicKeyCredentialRequestOptions = {
+                        challenge: challenge, // (d1)
+                        rpId: "localhost", // (d2)
+                        userVerification: "required" // (d3)
+                    };
+
+                    const credential = await navigator.credentials.get({
+                        publicKey: publicKeyCredentialRequestOptions,
+                        mediation: "conditional", // (d14)
+                        signal: abortSignal,
+                    });
+
+                }
+            }
+        }
+
+    </script>
+
+
+</body>
+
+</html>

@@ -15,7 +15,6 @@ import { isoBase64URL }
 
 import express from 'express';
 import session from 'express-session';
-import useragent from 'express-useragent';
 import path from 'path';
 
 const app = express();
@@ -26,7 +25,6 @@ app.use(session({
     cookie: { maxAge: 60000 }
 }));
 app.use(express.json());
-app.use(useragent.express());
 
 const port = 3000;
 const RPID = "localhost";
@@ -82,8 +80,12 @@ app.post('/registerResponse', async (req, res) => {
         }
 
         console.log(registrationInfo);
-        const { credential, userVerified } =
+        const { credential, userVerified, aaguid, credentialDeviceType } =
             registrationInfo;
+
+        // 同期パスキーであるかの判定
+        const synced = (credentialDeviceType == "multiDevice");
+
         const base64PublicKey =
             isoBase64URL.fromBuffer(credential.publicKey);
         const { user } = req.session;
@@ -92,7 +94,8 @@ app.post('/registerResponse', async (req, res) => {
         const cred = { // (d6)
             id: credential.id,
             publicKey: base64PublicKey,
-            name: req.useragent.platform,
+            aaguid,
+            synced,
             registered: (new Date()).getTime(),
             last_used: null,
             user_id: user.id
@@ -205,6 +208,9 @@ app.get('/', (req, res) => {
 });
 app.get('/polyfill.js', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, "public", '/polyfill.js'));
+});
+app.get('/local.html', (req, res) => {
+    res.sendFile(path.join(import.meta.dirname, "public", '/local.html'));
 });
 
 
